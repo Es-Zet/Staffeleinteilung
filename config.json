@@ -1,0 +1,34 @@
+{
+  "optimization": {
+    "attempts": 10,
+    "metric": "total_distance"
+  },
+  "league": {
+    "prefer_even_sizes": true
+  },
+  "geodesy": {
+    "km_per_degree_latitude": 111.32,
+    "max_distance_threshold": 1.0e10,
+    "coordinate_precision": 1.0e-8
+  },
+  "debug": {
+    "enabled": true,
+    "verbose": true
+  },
+  "metrics": {
+    "available": [
+      "total_distance",
+      "max_team_distance",
+      "max_travel_per_team",
+      "avg_distance_per_team",
+      "variance_distance"
+    ],
+    "description": {
+      "total_distance": "Sum of all pairwise distances within leagues",
+      "max_team_distance": "Maximum distance any team travels within its league",
+      "max_travel_per_team": "Minimize the team with highest travel distance",
+      "avg_distance_per_team": "Average distance per team",
+      "variance_distance": "Minimize variance (fairness across teams)"
+    }
+  }
+}
