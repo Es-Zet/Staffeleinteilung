@@ -150,14 +150,14 @@ int main()
     cout << "Optimization complete." << endl << endl;
 
     // Write results to file
-    FileIO::writeLeaguesAssignment("Staffelaufteilung.txt", teamList, bestSorting, leagueSizes);
+    FileIO::writeLeaguesAssignment("Einteilung_Ergebnis.txt", teamList, bestSorting, leagueSizes);
 
     // Display final metrics
     cout << "\nFinal result:" << endl;
     cout << "=============" << endl;
     optimizer->calculateMetric(distanceMatrix, bestSorting, leagueSizes, true);
 
-    cout << "Results written to Staffelaufteilung.txt" << endl;
+    cout << "Results written to Einteilung_Ergebnis.txt" << endl;
 
     system("pause");
 

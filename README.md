@@ -1,51 +1,103 @@
 # League Assignment Optimizer (Staffeleinteilung)
 
-A C++ application that automatically assigns football teams to leagues while minimizing travel distances.
+Automatically assigns football teams to leagues to minimize travel distances.
+
 
 ## Disclaimer
 
-Project is WIP!!
-Readme and most of the code written by AI (ChatGPT & Claude); documentation below is partially outdated.
+This project is WORK IN PROGRESS!
 
-## Features
+## What This Does
 
-- **Multiple optimization metrics**: Choose between total distance, max distance, fairness (variance), and more
-- **Configurable via JSON**: Easily customize algorithm parameters without recompiling
-- **Modular architecture**: Clean separation of concerns for maintainability
-- **GPS-based distance calculation**: Accurate haversine-approximation distance calculations
-- **Flexible league sizing**: Automatically splits teams into balanced leagues
+Given a list of teams with locations (GPS coordinates), this tool assigns them to multiple leagues while:
+- **Minimizing travel distances** - Teams in the same league travel less
+- **Preventing club duplicates** - Multiple teams from the same club are placed in different leagues
+- **Creating balanced leagues** - Leagues are roughly equal in size
 
-## Project Structure
+The optimizer uses iterative local search: it starts with a random assignment and repeatedly swaps teams between leagues if it improves the overall metric.
 
-```
-StaffelEinteilung/
-├── CMakeLists.txt              # Build configuration
-├── config.json                 # Configuration file (adjustable parameters)
-├── adressen.txt               # Team data (input file)
-├── include/                   # Header files
-│   ├── config.h              # Configuration management
-│   ├── optimizer.h           # Multi-metric optimization engine
-│   ├── team_data.h           # Team data structure
-│   ├── file_io.h             # File I/O operations
-│   ├── league_splitter.h     # League sizing logic
-│   └── distance_calculator.h # GPS distance calculations
-├── src/                       # Implementation files
-│   ├── main.cpp              # Main program
-│   ├── file_io.cpp           # File I/O implementation
-│   ├── league_splitter.cpp   # League split implementation
-│   └── distance_calculator.cpp # Distance calculation implementation
-└── build/                     # Build output directory
+## Optimization Metrics
+
+Choose the optimization goal based on your priorities:
+
+- **total_distance** (default): Minimize the sum of all distances. Best for keeping total travel low across all teams.
+- **max_team_distance**: Minimize the longest single distance between any two teams. Prevents extreme matchups.
+- **max_travel_per_team**: Minimize the team that travels the most. Ensures no single team has an unfairly long schedule.
+
+## Input Format
+
+Create `Teamliste.csv` with headers and team data:
+
+```csv
+Team Name,Address,GPS X,GPS Y
+1. FC Münklingen,Lehninger Weg; 71263 Weil der Stadt,48.774344830497895,8.818103820249467
+AC Italia Markgröningen,Schwieberdinger Str.; 71706 Markgröningen,48.90074426433602,9.082369035125339
 ```
 
-## Building the Project
+Columns:
+- **Team Name**: Name of the team
+- **Address**: Physical address (used for detecting teams from same club)
+- **GPS X**: Latitude
+- **GPS Y**: Longitude
 
-### Prerequisites
-- CMake 3.12 or higher
-- C++17 compatible compiler (MSVC, GCC, or Clang)
+Teams are considered to be from the same club if:
+1. They share the same address (or very similar GPS coordinates)
+2. Their names share a substring of at least 50% of the longer name (e.g., "AC Italia II" and "AC Italia Markgröningen II" are from same club)
 
-### Build Steps
+## Configuration
 
-**On Windows (with Visual Studio):**
+Edit `config.json`:
+
+```json
+{
+  "optimization": {
+    "attempts": 10,              // Number of optimization attempts
+    "metric": "total_distance"   // Which metric to optimize
+  },
+  "league": {
+    "prefer_even_sizes": true,
+    "disallow_same_club_in_league": true,   // Prevent same club teams together
+    "same_club_penalty": 1000.0             // Penalty for violating this
+  },
+  "geodesy": {
+    "km_per_degree_latitude": 111.32,       // Conversion factor for lat/lon
+    "coordinate_precision": 1.0e-8          // Threshold for duplicate coords
+  },
+  "debug": {
+    "enabled": true,
+    "verbose": true
+  },
+  "metrics": {
+    "available": [
+      "total_distance",
+      "max_team_distance",
+      "max_travel_per_team"
+    ]
+  }
+}
+```
+
+**Key settings:**
+- `attempts`: More attempts = better optimization but slower runtime
+- `metric`: Change which optimization goal to use
+- `disallow_same_club_in_league`: Set to `false` to allow multiple teams from same club in one league
+- `same_club_penalty`: Higher penalty = stronger enforcement (must be large enough to outweigh distance differences)
+
+### Available Optimization Metrics
+
+- **`total_distance`**: Minimize sum of all distances (default)
+- **`max_team_distance`**: Minimize maximum distance between any two teams
+- **`max_travel_per_team`**: Minimize the team with highest total travel
+
+## Running the Application
+
+## Building
+
+**Prerequisites:**
+- CMake 3.12+
+- C++17 compiler (MSVC, GCC, or Clang)
+
+**Steps:**
 ```bash
 mkdir build
 cd build
@@ -53,101 +105,38 @@ cmake ..
 cmake --build . --config Release
 ```
 
-**On Linux/macOS:**
-```bash
-mkdir build
-cd build
-cmake ..
-make
-```
+Executable: `build/StaffelEinteilung.exe` (Windows) or `build/StaffelEinteilung` (Linux/macOS)
 
-The compiled executable will be in the `build/` directory.
+## Running
 
-## Input Data Format
+1. Prepare `Teamliste.csv` with your team data
+2. Adjust `config.json` if needed (metric choice, penalty strength, etc.)
+3. Run the optimizer:
+   ```bash
+   ./StaffelEinteilung
+   ```
+4. When prompted, enter maximum league size
+5. Results written to `Staffelaufteilung.txt`
 
-Create an `adressen.txt` file with the following format (tab-separated):
-```
-Team Name    Address                          GPS_X         GPS_Y
-1. FC Meier  Main Street 10, 70000 City      48.7758       8.6495
-AC Italia    Side Road 20, 71000 Town        48.9007       9.0824
-```
+## Output Format
 
-Each line must contain:
-- Team name (tab)
-- Address (tab)
-- GPS coordinates as `latitude,longitude`
-
-## Configuration
-
-Edit `config.json` to customize:
-
-```json
-{
-  "optimization": {
-    "attempts": 100,              // Number of optimization runs
-    "metric": "total_distance"    // Optimization metric
-  },
-  "geodesy": {
-    "km_per_degree_latitude": 111.32,
-    "max_distance_threshold": 1.0e10,
-    "coordinate_precision": 1.0e-16
-  },
-  "debug": {
-    "enabled": true,
-    "verbose": true
-  }
-}
-```
-
-### Available Optimization Metrics
-
-- **`total_distance`**: Minimize sum of all distances (default)
-- **`max_team_distance`**: Minimize maximum distance between any two teams
-- **`max_travel_per_team`**: Minimize the team with highest total travel
-- **`avg_distance_per_team`**: Minimize average distance per team
-- **`variance_distance`**: Minimize variance (fairness across teams)
-
-## Running the Application
-
-```bash
-./build/StaffelEinteilung
-```
-
-The program will:
-1. Load `config.json` (defaults used if missing)
-2. Read team data from `adressen.txt`
-3. Ask for maximum league size
-4. Optionally ask for optimization metric choice (if debug enabled)
-5. Run optimization
-6. Write results to `Staffelaufteilung.txt`
-
-## Output
-
-Results are written to `Staffelaufteilung.txt` with the following format:
+`Staffelaufteilung.txt` contains the league assignments:
 
 ```
 # League 1
-Team A    Address A    48.7758, 8.6495
-Team B    Address B    48.9007, 9.0824
+1. FC Münklingen    Lehninger Weg; 71263 Weil der Stadt    48.77, 8.82
+AC Italia Markgröningen    Schwieberdinger Str.; 71706 Markgröningen    48.90, 9.08
 
 # League 2
-Team C    Address C    49.0415, 9.1234
 ...
 ```
 
-## Architecture Benefits
+## How It Works
 
-- **Modular**: Each component has a single responsibility
-- **Testable**: Isolated modules can be unit tested independently
-- **Configurable**: All parameters in JSON, no recompilation needed
-- **Extensible**: Easy to add new optimization metrics or visualization formats
-- **Header-only parsing**: Minimal dependencies, ships as single standalone executable
+1. **Distance calculation**: Uses lat/long coordinates with haversine approximation
+2. **Penalty system**: Same-club teams in same league incur a high penalty
+3. **Local search**: Iteratively swaps teams between leagues, keeping swaps that improve the metric
+4. **Multiple attempts**: Runs optimization from different random starting points, keeps the best result
 
-## Future Enhancements
-
-- SVG visualization of league assignments
-- HTML report generation
-- Interactive GUI (optional, planned)
-- Export to Excel/CSV format
-- Advanced optimization algorithms (genetic algorithms, simulated annealing)
+The penalty for same-club assignments is configurable - increase it if teams are still being placed together, or decrease it to allow some flexibility.
 
