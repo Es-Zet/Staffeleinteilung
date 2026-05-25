@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCES
     src/main.cpp
     src/file_io.cpp
+    src/optimizer.cpp
     src/league_splitter.cpp
     src/distance_calculator.cpp
 )
@@ -28,14 +29,14 @@ else()
     target_compile_options(StaffelEinteilung PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-# Copy config.json and adressen.txt to build directory
+# Copy config.json and Teamliste.csv to build directory
 configure_file(
     ${CMAKE_SOURCE_DIR}/config.json
     ${CMAKE_BINARY_DIR}/config.json
     COPYONLY
 )
 configure_file(
-    ${CMAKE_SOURCE_DIR}/adressen.txt
-    ${CMAKE_BINARY_DIR}/adressen.txt
+    ${CMAKE_SOURCE_DIR}/Teamliste.csv
+    ${CMAKE_BINARY_DIR}/Teamliste.csv
     COPYONLY
 )

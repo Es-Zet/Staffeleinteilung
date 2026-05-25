@@ -29,6 +29,8 @@ public:
 
     // Getters for league settings
     bool shouldPreferEvenSizes() const { return preferEvenSizes; }
+    bool shouldDisallowSameClubInLeague() const { return disallowSameClubInLeague; }
+    double getSameClubPenalty() const { return sameClubPenalty; }
 
     // List available metrics
     const std::vector<std::string>& getAvailableMetrics() const { return availableMetrics; }
@@ -51,12 +53,12 @@ private:
     double maxDistanceThreshold = 1.0e10;
     double coordinatePrecision = 1.0e-16;
     bool preferEvenSizes = true;
+    bool disallowSameClubInLeague = true;
+    double sameClubPenalty = 1000.0;
     std::vector<std::string> availableMetrics = {
         "total_distance",
         "max_team_distance",
-        "max_travel_per_team",
-        "avg_distance_per_team",
-        "variance_distance"
+        "max_travel_per_team"
     };
 
     void loadFromFile(const std::string& filename) {
@@ -83,11 +85,13 @@ private:
         debugEnabled = extractBoolValue(content, "enabled", debugEnabled);
         verboseEnabled = extractBoolValue(content, "verbose", verboseEnabled);
         preferEvenSizes = extractBoolValue(content, "prefer_even_sizes", preferEvenSizes);
+        disallowSameClubInLeague = extractBoolValue(content, "disallow_same_club_in_league", disallowSameClubInLeague);
         
         // Extract double values
         kmPerDegreeLat = extractDoubleValue(content, "km_per_degree_latitude", kmPerDegreeLat);
         maxDistanceThreshold = extractDoubleValue(content, "max_distance_threshold", maxDistanceThreshold);
         coordinatePrecision = extractDoubleValue(content, "coordinate_precision", coordinatePrecision);
+        sameClubPenalty = extractDoubleValue(content, "same_club_penalty", sameClubPenalty);
     }
 
     // Helper functions for JSON value extraction

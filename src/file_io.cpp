@@ -16,27 +16,35 @@ std::vector<TeamData> FileIO::readTeamsFromFile(const std::string& filename)
     }
 
     std::string line;
+    bool firstLine = true;
+    
     while (std::getline(file, line)) {
+        // Skip header line
+        if (firstLine) {
+            firstLine = false;
+            continue;
+        }
+        
+        // Skip empty lines
+        if (line.empty()) {
+            continue;
+        }
+        
         std::istringstream iss(line);
         TeamData data;
-        std::string gps_coordinates;
+        std::string gps_lat_str, gps_long_str;
 
-        if (std::getline(iss, data.name, '\t') &&
-            std::getline(iss, data.address, '\t') &&
-            std::getline(iss, gps_coordinates, '\n')) {
+        if (std::getline(iss, data.name, ',') &&
+            std::getline(iss, data.address, ',') &&
+            std::getline(iss, gps_lat_str, ',') &&
+            std::getline(iss, gps_long_str, '\n')) {
 
-            std::istringstream gps_stream(gps_coordinates);
-            std::string gps_x_str, gps_y_str;
-
-            if (std::getline(gps_stream, gps_x_str, ',') &&
-                std::getline(gps_stream, gps_y_str)) {
-                try {
-                    data.gps_x = std::stod(gps_x_str);
-                    data.gps_y = std::stod(gps_y_str);
-                    teamList.push_back(data);
-                } catch (const std::exception& e) {
-                    std::cerr << "Error parsing GPS coordinates: " << e.what() << std::endl;
-                }
+            try {
+                data.gps_lat = std::stod(gps_lat_str);
+                data.gps_long = std::stod(gps_long_str);
+                teamList.push_back(data);
+            } catch (const std::exception& e) {
+                std::cerr << "Error parsing GPS coordinates: " << e.what() << std::endl;
             }
         }
     }
@@ -64,7 +72,7 @@ void FileIO::writeLeaguesAssignment(
         for (int j = 0; j < leagueSizes[i]; j++) {
             const TeamData& team = teams[teamSorting[counter]];
             myfile << team.name << "\t" << team.address << "\t" 
-                   << team.gps_x << ", " << team.gps_y << "\n";
+                   << team.gps_lat << ", " << team.gps_long << "\n";
             counter++;
         }
         myfile << "\n";

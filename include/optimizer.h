@@ -7,240 +7,90 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
-
-enum class MetricType {
-    TOTAL_DISTANCE,
-    MAX_TEAM_DISTANCE,
-    MAX_TRAVEL_PER_TEAM,
-    AVG_DISTANCE_PER_TEAM,
-    VARIANCE_DISTANCE
-};
+#include <memory>
+#include "file_io.h"
 
 class Optimizer {
 public:
-    Optimizer(int numTeams, const std::string& metricName, bool debug = false)
-        : numTeams(numTeams), debug(debug) {
-        setMetric(metricName);
-    }
+    // Factory method to create appropriate optimizer based on metric name
+    static std::unique_ptr<Optimizer> create(
+        int numTeams,
+        const std::string& metricName,
+        const std::vector<TeamData>& teams,
+        bool debug = false,
+        bool disallowSameClub = false,
+        double sameClubPenalty = 1000.0);
 
-    // Set the optimization metric
-    void setMetric(const std::string& metricName) {
-        if (metricName == "total_distance") {
-            metric = MetricType::TOTAL_DISTANCE;
-        } else if (metricName == "max_team_distance") {
-            metric = MetricType::MAX_TEAM_DISTANCE;
-        } else if (metricName == "max_travel_per_team") {
-            metric = MetricType::MAX_TRAVEL_PER_TEAM;
-        } else if (metricName == "avg_distance_per_team") {
-            metric = MetricType::AVG_DISTANCE_PER_TEAM;
-        } else if (metricName == "variance_distance") {
-            metric = MetricType::VARIANCE_DISTANCE;
-        } else {
-            throw std::invalid_argument("Unknown metric: " + metricName);
-        }
-    }
-
-    // Calculate team travel distances for a given sorting
-    std::vector<std::vector<double>> calculateTeamTravelDistances(
-        const std::vector<std::vector<double>>& distances,
-        const std::vector<int>& sorting,
-        const std::vector<int>& leagues) const {
-        
-        std::vector<std::vector<double>> travels;
-        int leagueIndex = 0;
-
-        for (size_t i = 0; i < leagues.size(); i++) {
-            for (int j = 0; j < leagues[i]; j++) {
-                std::vector<double> teamTravel;
-                for (int k = 0; k < leagues[i]; k++) {
-                    teamTravel.push_back(
-                        distances[sorting[leagueIndex + j]][sorting[leagueIndex + k]]
-                    );
-                }
-                travels.push_back(teamTravel);
-            }
-            leagueIndex += leagues[i];
-        }
-
-        return travels;
-    }
+    virtual ~Optimizer() = default;
 
     // Calculate the metric value for a given sorting
     double calculateMetric(
         const std::vector<std::vector<double>>& distances,
         const std::vector<int>& sorting,
         const std::vector<int>& leagues,
-        bool verbose = false) const {
-        
-        std::vector<std::vector<double>> travels = calculateTeamTravelDistances(distances, sorting, leagues);
-        
-        double result = 0.0;
-        
-        switch (metric) {
-            case MetricType::TOTAL_DISTANCE:
-                result = calculateTotalDistance(travels);
-                break;
-            case MetricType::MAX_TEAM_DISTANCE:
-                result = calculateMaxTeamDistance(travels);
-                break;
-            case MetricType::MAX_TRAVEL_PER_TEAM:
-                result = calculateMaxTravelPerTeam(travels);
-                break;
-            case MetricType::AVG_DISTANCE_PER_TEAM:
-                result = calculateAvgDistancePerTeam(travels);
-                break;
-            case MetricType::VARIANCE_DISTANCE:
-                result = calculateVarianceDistance(travels);
-                break;
-        }
-
-        if (debug && verbose) {
-            outputMetricDetails(travels, result);
-        }
-
-        return result;
-    }
+        bool verbose = false) const;
 
     // Optimize team sorting using local search with pairwise swaps
     std::vector<int> optimizeSorting(
         const std::vector<std::vector<double>>& distances,
         std::vector<int> teamSorting,
-        const std::vector<int>& leagues) const {
-        
-        std::vector<int> betterSorting = teamSorting;
-        double betterValue = calculateMetric(distances, betterSorting, leagues);
-        double newValue;
-        bool betterFound = true;
+        const std::vector<int>& leagues) const;
 
-        while (betterFound) {
-            betterFound = false;
-            for (int i = 0; i < numTeams; i++) {
-                for (int j = i + 1; j < numTeams; j++) {
-                    std::swap(teamSorting[i], teamSorting[j]);
-                    newValue = calculateMetric(distances, teamSorting, leagues);
-                    
-                    if (newValue < betterValue) {
-                        betterFound = true;
-                        betterSorting = teamSorting;
-                        betterValue = newValue;
-                        
-                        if (debug) {
-                            std::cout << "Better sorting found (metric: " 
-                                      << std::fixed << std::setprecision(6) << betterValue << ")" << std::endl;
-                        }
-                    } else {
-                        teamSorting = betterSorting;
-                    }
-                }
-            }
-        }
+    // Output metric details for verbose mode
+    void outputMetricDetails(const std::vector<std::vector<double>>& travels, double result) const;
 
-        return betterSorting;
-    }
-
-private:
+protected:
     int numTeams;
-    MetricType metric = MetricType::TOTAL_DISTANCE;
     bool debug;
+    std::vector<std::vector<double>> penaltyMatrix;
 
-    double calculateTotalDistance(const std::vector<std::vector<double>>& travels) const {
-        double total = 0.0;
-        for (const auto& teamTravel : travels) {
-            for (double distance : teamTravel) {
-                total += distance;
-            }
-        }
-        return total;
-    }
+    Optimizer(int numTeams, bool debug, const std::vector<TeamData>& teams,
+              bool disallowSameClub, double sameClubPenalty);
 
-    double calculateMaxTeamDistance(const std::vector<std::vector<double>>& travels) const {
-        double maxDist = 0.0;
-        for (const auto& teamTravel : travels) {
-            for (double distance : teamTravel) {
-                if (distance > maxDist) maxDist = distance;
-            }
-        }
-        return maxDist;
-    }
+    // Calculate team travel distances for a given sorting
+    std::vector<std::vector<double>> calculateTeamTravelDistances(
+        const std::vector<std::vector<double>>& distances,
+        const std::vector<int>& sorting,
+        const std::vector<int>& leagues) const;
 
-    double calculateMaxTravelPerTeam(const std::vector<std::vector<double>>& travels) const {
-        double maxTeamTravel = 0.0;
-        for (const auto& teamTravel : travels) {
-            double teamSum = 0.0;
-            for (double distance : teamTravel) {
-                teamSum += distance;
-            }
-            if (teamSum > maxTeamTravel) maxTeamTravel = teamSum;
-        }
-        return maxTeamTravel;
-    }
+    // Calculate penalty for same-club teams in same league
+    double calculateSameClubPenalty(
+        const std::vector<int>& sorting,
+        const std::vector<int>& leagues) const;
 
-    double calculateAvgDistancePerTeam(const std::vector<std::vector<double>>& travels) const {
-        double total = 0.0;
-        int count = 0;
-        for (const auto& teamTravel : travels) {
-            for (double distance : teamTravel) {
-                total += distance;
-                count++;
-            }
-        }
-        return count > 0 ? total / count : 0.0;
-    }
+    // Abstract method for derived classes to implement metric-specific calculation
+    virtual double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const = 0;
 
-    double calculateVarianceDistance(const std::vector<std::vector<double>>& travels) const {
-        // Calculate sum of distances for each team
-        std::vector<double> teamDistances;
-        for (const auto& teamTravel : travels) {
-            double sum = 0.0;
-            for (double distance : teamTravel) {
-                sum += distance;
-            }
-            teamDistances.push_back(sum);
-        }
+    // Helper to convert metric type to string
+    virtual std::string getMetricName() const = 0;
+};
 
-        // Calculate mean
-        double mean = 0.0;
-        for (double dist : teamDistances) {
-            mean += dist;
-        }
-        mean /= teamDistances.size();
+// Derived classes for each metric type
+class TotalDistanceOptimizer : public Optimizer {
+public:
+    TotalDistanceOptimizer(int numTeams, const std::vector<TeamData>& teams,
+                          bool debug, bool disallowSameClub, double sameClubPenalty);
+protected:
+    double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const override;
+    std::string getMetricName() const override { return "total_distance"; }
+};
 
-        // Calculate variance
-        double variance = 0.0;
-        for (double dist : teamDistances) {
-            variance += (dist - mean) * (dist - mean);
-        }
-        variance /= teamDistances.size();
+class MaxTeamDistanceOptimizer : public Optimizer {
+public:
+    MaxTeamDistanceOptimizer(int numTeams, const std::vector<TeamData>& teams,
+                            bool debug, bool disallowSameClub, double sameClubPenalty);
+protected:
+    double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const override;
+    std::string getMetricName() const override { return "max_team_distance"; }
+};
 
-        return variance;
-    }
-
-    void outputMetricDetails(const std::vector<std::vector<double>>& travels, double result) const {
-        std::cout << "\n----- Metric Details -----\n";
-        
-        double totalDist = calculateTotalDistance(travels);
-        double maxDist = calculateMaxTeamDistance(travels);
-        double maxTravel = calculateMaxTravelPerTeam(travels);
-        double avgDist = calculateAvgDistancePerTeam(travels);
-        
-        std::cout << "Total distance: " << std::fixed << std::setprecision(2) << totalDist << " km\n";
-        std::cout << "Max single distance: " << maxDist << " km\n";
-        std::cout << "Max team travel: " << maxTravel << " km\n";
-        std::cout << "Avg distance per team: " << avgDist << " km\n";
-        std::cout << "Current metric (" << metricTypeToString() << "): " << result << "\n";
-        std::cout << "--------------------------\n\n";
-    }
-
-    std::string metricTypeToString() const {
-        switch (metric) {
-            case MetricType::TOTAL_DISTANCE: return "total_distance";
-            case MetricType::MAX_TEAM_DISTANCE: return "max_team_distance";
-            case MetricType::MAX_TRAVEL_PER_TEAM: return "max_travel_per_team";
-            case MetricType::AVG_DISTANCE_PER_TEAM: return "avg_distance_per_team";
-            case MetricType::VARIANCE_DISTANCE: return "variance_distance";
-        }
-        return "unknown";
-    }
+class MaxTravelPerTeamOptimizer : public Optimizer {
+public:
+    MaxTravelPerTeamOptimizer(int numTeams, const std::vector<TeamData>& teams,
+                             bool debug, bool disallowSameClub, double sameClubPenalty);
+protected:
+    double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const override;
+    std::string getMetricName() const override { return "max_travel_per_team"; }
 };
 
 #endif // OPTIMIZER_H

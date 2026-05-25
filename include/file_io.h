@@ -3,11 +3,17 @@
 
 #include <string>
 #include <vector>
-#include "team_data.h"
+
+struct TeamData {
+    std::string name;
+    std::string address;
+    double gps_lat;
+    double gps_long;
+};
 
 class FileIO {
 public:
-    /// Read team data from a tab-separated file with format: name \t address \t gps_x, gps_y
+    /// Read team data from a CSV file with format: Team Name, Address, GPS Latitude, GPS Longitude
     static std::vector<TeamData> readTeamsFromFile(const std::string& filename);
 
     /// Write league assignments to an output file

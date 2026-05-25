@@ -15,10 +15,10 @@ std::vector<std::vector<double>> DistanceCalculator::createDistanceMatrix(
         for (int j = 0; j < numTeams; j++) {
             // Calculate distance using haversine approximation
             double kmPerDegreeLong = kmPerDegreeLat * std::cos(
-                (teams[i].gps_x + teams[j].gps_x) * M_PI / 360.0
+                (teams[i].gps_lat + teams[j].gps_lat) * M_PI / 360.0
             );
-            double kmLat = kmPerDegreeLat * (teams[i].gps_x - teams[j].gps_x);
-            double kmLong = kmPerDegreeLong * (teams[i].gps_y - teams[j].gps_y);
+            double kmLat = kmPerDegreeLat * (teams[i].gps_lat - teams[j].gps_lat);
+            double kmLong = kmPerDegreeLong * (teams[i].gps_long - teams[j].gps_long);
             
             double dist = std::sqrt(kmLat * kmLat + kmLong * kmLong);
             

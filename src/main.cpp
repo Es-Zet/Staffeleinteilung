@@ -12,7 +12,6 @@
 
 #include "config.h"
 #include "optimizer.h"
-#include "team_data.h"
 #include "file_io.h"
 #include "league_splitter.h"
 #include "distance_calculator.h"
@@ -29,12 +28,12 @@ int main()
     Config config;
 
     // Read team data from file
-    // Expected format: name \t address \t gps_x, gps_y
-    cout << "Reading team data from adressen.txt..." << endl;
-    vector<TeamData> teamList = FileIO::readTeamsFromFile("adressen.txt");
+    // Expected format: CSV with headers (Team Name, Address, GPS X, GPS Y)
+    cout << "Reading team data from Teamliste.csv..." << endl;
+    vector<TeamData> teamList = FileIO::readTeamsFromFile("Teamliste.csv");
 
     if (teamList.empty()) {
-        cerr << "Error: No teams found in adressen.txt" << endl;
+        cerr << "Error: No teams found in Teamliste.csv" << endl;
         return 1;
     }
 
@@ -103,8 +102,14 @@ int main()
     );
     cout << "Distance matrix created." << endl << endl;
 
-    // Create optimizer with selected metric
-    Optimizer optimizer(numTeams, selectedMetric, config.isDebugEnabled());
+    // Create optimizer with selected metric using factory method
+    auto optimizer = Optimizer::create(
+        numTeams, 
+        selectedMetric, 
+        teamList,
+        config.isDebugEnabled(), 
+        config.shouldDisallowSameClubInLeague(), 
+        config.getSameClubPenalty());
 
     // Run optimization
     cout << "Starting optimization..." << endl;
@@ -114,7 +119,7 @@ int main()
     }
 
     vector<int> bestSorting = teamSorting;
-    double bestValue = optimizer.calculateMetric(distanceMatrix, teamSorting, leagueSizes);
+    double bestValue = optimizer->calculateMetric(distanceMatrix, teamSorting, leagueSizes);
 
     // Initialize random number generator
     auto rng = default_random_engine{};
@@ -126,8 +131,8 @@ int main()
             cout << "Optimization attempt " << (attempt + 1) << "/" << optimizationAttempts << endl;
         }
 
-        teamSorting = optimizer.optimizeSorting(distanceMatrix, teamSorting, leagueSizes);
-        double newValue = optimizer.calculateMetric(distanceMatrix, teamSorting, leagueSizes);
+        teamSorting = optimizer->optimizeSorting(distanceMatrix, teamSorting, leagueSizes);
+        double newValue = optimizer->calculateMetric(distanceMatrix, teamSorting, leagueSizes);
 
         if (newValue < bestValue) {
             bestSorting = teamSorting;
@@ -150,7 +155,7 @@ int main()
     // Display final metrics
     cout << "\nFinal result:" << endl;
     cout << "=============" << endl;
-    optimizer.calculateMetric(distanceMatrix, bestSorting, leagueSizes, true);
+    optimizer->calculateMetric(distanceMatrix, bestSorting, leagueSizes, true);
 
     cout << "Results written to Staffelaufteilung.txt" << endl;
 

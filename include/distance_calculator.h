@@ -2,7 +2,7 @@
 #define DISTANCE_CALCULATOR_H
 
 #include <vector>
-#include "team_data.h"
+#include "file_io.h"
 
 class DistanceCalculator {
 public:
