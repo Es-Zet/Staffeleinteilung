@@ -2,6 +2,11 @@
 
 A C++ application that automatically assigns football teams to leagues while minimizing travel distances.
 
+## Disclaimer
+
+Project is WIP!!
+Readme and most of the code written by AI (ChatGPT & Claude); documentation below is partially outdated.
+
 ## Features
 
 - **Multiple optimization metrics**: Choose between total distance, max distance, fairness (variance), and more
@@ -146,10 +151,3 @@ Team C    Address C    49.0415, 9.1234
 - Export to Excel/CSV format
 - Advanced optimization algorithms (genetic algorithms, simulated annealing)
 
-## Author
-
-Written by SZ with help of ChatGPT
-
-## License
-
-See LICENSE file
