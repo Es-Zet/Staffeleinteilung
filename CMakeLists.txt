@@ -5,28 +5,34 @@ project(StaffelEinteilung)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Source files
-set(SOURCES
-    src/main.cpp
+# Common source files (shared between executables)
+set(COMMON_SOURCES
     src/file_io.cpp
-    src/optimizer.cpp
     src/league_splitter.cpp
     src/distance_calculator.cpp
+    src/optimizer.cpp
+    src/evaluation_results.cpp
+    src/html_visualizer.cpp
 )
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# Create executable
-add_executable(StaffelEinteilung ${SOURCES})
+# Main executable: League Assignment Optimizer
+set(MAIN_SOURCES ${COMMON_SOURCES} src/main.cpp)
+add_executable(StaffelEinteilung ${MAIN_SOURCES})
 
-# Platform-specific configurations
+# Utility executable: Metric Calculator
+set(EVAL_SOURCES ${COMMON_SOURCES} src/evaluation.cpp)
+add_executable(StaffelBewertung ${EVAL_SOURCES})
+
+# Platform-specific configurations for main executable
 if(MSVC)
-    # For MSVC compiler
     target_compile_options(StaffelEinteilung PRIVATE /W4)
+    target_compile_options(StaffelBewertung PRIVATE /W4)
 else()
-    # For GCC/Clang
     target_compile_options(StaffelEinteilung PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(StaffelBewertung PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 # Copy config.json and Teamliste.csv to build directory

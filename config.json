@@ -1,4 +1,10 @@
 {
+  "file_names": {
+    "teams": "Teamliste.csv",
+    "assignment": "Staffeleinteilung.txt",
+    "evaluation": "evaluation.json",
+    "results": "Staffeleinteilung.html"
+  },
   "optimization": {
     "attempts": 10,
     "metric": "total_distance"
@@ -24,9 +30,12 @@
       "max_travel_per_team"
     ],
     "description": {
-      "total_distance": "Minimize the sum of all pairwise distances within leagues",
-      "max_team_distance": "Minimize the maximal total distance any team travels within its league",
-      "max_travel_per_team": "Minimize the maximal single day distance any team travels"
+      "total_distance": "Summe aller Reisestrecken aller Teams über die gesamte Saison",
+      "max_team_distance": "Maximale Reisestrecke eines einzelnen Teams über die gesamte Saison",
+      "max_travel_per_team": "Maximiale Reisestrecke eines einzelnen Teams an einem einzelnen Spieltag"
     }
+  },
+  "customization": {
+    "league_identifier": "Staffel"
   }
 }

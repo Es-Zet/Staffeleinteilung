@@ -36,16 +36,14 @@ Optimizer::Optimizer(int numTeams, bool debug, const std::vector<TeamData>& team
                     continue;
                 }
                 
-                // find matching substring which is at least the length of half the shorter team name
+                // find matching substring at beginning of team names to identify same club
                 std::string clubShort = teams[i].name.length() < teams[j].name.length() ? teams[i].name : teams[j].name;
                 std::string clubLong = teams[i].name.length() >= teams[j].name.length() ? teams[i].name : teams[j].name;
-                size_t substringLength = clubShort.length() / 2;
-                for (size_t start = 0; start <= clubShort.length() - substringLength; start++) {
-                    std::string substring = clubShort.substr(start, substringLength);
-                    if (clubLong.find(substring) != std::string::npos) {
-                        penaltyMatrix[i][j] = sameClubPenalty;
-                        break;
-                    }
+                size_t substringLength = clubShort.length() * 2/3;
+                std::string substring = clubShort.substr(0, substringLength);
+                if (clubLong.substr(0, substringLength) == substring) {
+                    penaltyMatrix[i][j] = sameClubPenalty;
+                    continue;
                 }
             }
         }
@@ -247,22 +245,6 @@ MaxTeamDistanceOptimizer::MaxTeamDistanceOptimizer(int numTeams, const std::vect
 
 double MaxTeamDistanceOptimizer::calculateMetricImpl(const std::vector<std::vector<double>>& travels) const
 {
-    double maxDist = 0.0;
-    for (const auto& teamTravel : travels) {
-        for (double distance : teamTravel) {
-            if (distance > maxDist) maxDist = distance;
-        }
-    }
-    return maxDist;
-}
-
-// MaxTravelPerTeamOptimizer
-MaxTravelPerTeamOptimizer::MaxTravelPerTeamOptimizer(int numTeams, const std::vector<TeamData>& teams,
-                                                     bool debug, bool disallowSameClub, double sameClubPenalty)
-    : Optimizer(numTeams, debug, teams, disallowSameClub, sameClubPenalty) {}
-
-double MaxTravelPerTeamOptimizer::calculateMetricImpl(const std::vector<std::vector<double>>& travels) const
-{
     double maxTeamTravel = 0.0;
     for (const auto& teamTravel : travels) {
         double teamSum = 0.0;
@@ -272,4 +254,20 @@ double MaxTravelPerTeamOptimizer::calculateMetricImpl(const std::vector<std::vec
         if (teamSum > maxTeamTravel) maxTeamTravel = teamSum;
     }
     return maxTeamTravel;
+}
+
+// MaxTravelPerTeamOptimizer
+MaxTravelPerTeamOptimizer::MaxTravelPerTeamOptimizer(int numTeams, const std::vector<TeamData>& teams,
+                                                     bool debug, bool disallowSameClub, double sameClubPenalty)
+    : Optimizer(numTeams, debug, teams, disallowSameClub, sameClubPenalty) {}
+
+double MaxTravelPerTeamOptimizer::calculateMetricImpl(const std::vector<std::vector<double>>& travels) const
+{
+    double maxDist = 0.0;
+    for (const auto& teamTravel : travels) {
+        for (double distance : teamTravel) {
+            if (distance > maxDist) maxDist = distance;
+        }
+    }
+    return maxDist;
 }

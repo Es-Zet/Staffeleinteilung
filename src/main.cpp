@@ -29,11 +29,11 @@ int main()
 
     // Read team data from file
     // Expected format: CSV with headers (Team Name, Address, GPS X, GPS Y)
-    cout << "Reading team data from Teamliste.csv..." << endl;
-    vector<TeamData> teamList = FileIO::readTeamsFromFile("Teamliste.csv");
+    cout << "Reading team data from " << config.getTeamsFile() << "..." << endl;
+    vector<TeamData> teamList = FileIO::readTeamsFromFile(config.getTeamsFile());
 
     if (teamList.empty()) {
-        cerr << "Error: No teams found in Teamliste.csv" << endl;
+        cerr << "Error: No teams found in " << config.getTeamsFile() << endl;
         return 1;
     }
 
@@ -150,14 +150,14 @@ int main()
     cout << "Optimization complete." << endl << endl;
 
     // Write results to file
-    FileIO::writeLeaguesAssignment("Einteilung_Ergebnis.txt", teamList, bestSorting, leagueSizes);
+    FileIO::writeLeaguesAssignment(config.getAssignmentFile(), teamList, bestSorting, leagueSizes);
 
     // Display final metrics
     cout << "\nFinal result:" << endl;
     cout << "=============" << endl;
     optimizer->calculateMetric(distanceMatrix, bestSorting, leagueSizes, true);
 
-    cout << "Results written to Einteilung_Ergebnis.txt" << endl;
+    cout << "Results written to " << config.getAssignmentFile() << endl;
 
     system("pause");
 

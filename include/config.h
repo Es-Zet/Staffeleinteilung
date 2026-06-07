@@ -16,6 +16,12 @@ public:
         loadFromFile(filename);
     }
 
+    // Getters for file names
+    std::string getTeamsFile() const { return fileNames.teams; }
+    std::string getAssignmentFile() const { return fileNames.assignment; }
+    std::string getEvaluationFile() const { return fileNames.evaluation; }
+    std::string getResultsFile() const { return fileNames.results; }
+
     // Getters for optimization settings
     int getOptimizationAttempts() const { return optimizationAttempts; }
     std::string getMetric() const { return metric; }
@@ -32,8 +38,18 @@ public:
     bool shouldDisallowSameClubInLeague() const { return disallowSameClubInLeague; }
     double getSameClubPenalty() const { return sameClubPenalty; }
 
+    // Getters for customization options
+    std::string getLeagueIdentifier() const { return leagueIdentifier; }
+
     // List available metrics
     const std::vector<std::string>& getAvailableMetrics() const { return availableMetrics; }
+    std::string getMetricDescription(const std::string& metricName) const {
+        auto it = metricDescriptions.find(metricName);
+        if (it != metricDescriptions.end()) {
+            return it->second;
+        }
+        return "No description available.";
+    }
 
     // Validate that metric is available
     bool isValidMetric(const std::string& metricName) const {
@@ -60,7 +76,18 @@ private:
         "max_team_distance",
         "max_travel_per_team"
     };
-
+    struct FileNames {
+        std::string teams = "Teamliste.csv";
+        std::string assignment = "Staffeleinteilung.txt";
+        std::string evaluation = "evaluation.json";
+        std::string results = "Staffeleinteilung.html";
+    } fileNames;
+    std::string leagueIdentifier = "Staffel";
+    std::map<std::string, std::string> metricDescriptions = {
+        {"total_distance", "Summe aller Reisestrecken aller Teams über die gesamte Saison"},
+        {"max_team_distance", "Maximale Reisestrecke eines einzelnen Teams über die gesamte Saison"},
+        {"max_travel_per_team", "Maximale Reisestrecke eines einzelnen Teams an einem einzelnen Spieltag"}
+    };
     void loadFromFile(const std::string& filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
@@ -74,13 +101,23 @@ private:
 
         // Simple key-value extraction from JSON
         // This is a minimal parser sufficient for our config structure
-        
+
+        // extract file names
+        fileNames.teams = extractStringValue(content, "teams", fileNames.teams);
+        fileNames.assignment = extractStringValue(content, "assignment", fileNames.assignment);
+        fileNames.evaluation = extractStringValue(content, "evaluation", fileNames.evaluation);
+        fileNames.results = extractStringValue(content, "results", fileNames.results);
+
         // Extract integer values
         optimizationAttempts = extractIntValue(content, "attempts", optimizationAttempts);
         
         // Extract string values
         metric = extractStringValue(content, "metric", metric);
-        
+        leagueIdentifier = extractStringValue(content, "league_identifier", leagueIdentifier);
+        metricDescriptions["total_distance"] = extractStringValue(content, "description_total_distance", metricDescriptions["total_distance"]);
+        metricDescriptions["max_team_distance"] = extractStringValue(content, "description_max_team_distance", metricDescriptions["max_team_distance"]);
+        metricDescriptions["max_travel_per_team"] = extractStringValue(content, "description_max_travel_per_team", metricDescriptions["max_travel_per_team"]);
+
         // Extract boolean values
         debugEnabled = extractBoolValue(content, "enabled", debugEnabled);
         verboseEnabled = extractBoolValue(content, "verbose", verboseEnabled);
