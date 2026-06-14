@@ -1,38 +1,40 @@
 #include "distance_calculator.h"
-#include <cmath>
+
+std::pair<double, double> DistanceCalculator::toProjectedCoords(double gps_lat, double gps_long, double kmPerDegreeLat)
+{
+    double kmPerDegreeLong = kmPerDegreeLat * std::cos(gps_lat * M_PI / 180.0);
+    double pos_x = kmPerDegreeLong * gps_long;
+    double pos_y = kmPerDegreeLat  * gps_lat;
+    return {pos_x, pos_y};
+}
 
 std::vector<std::vector<double>> DistanceCalculator::createDistanceMatrix(
     const std::vector<TeamData>& teams,
-    double kmPerDegreeLat,
-    double coordinatePrecision,
-    double maxDistanceThreshold)
+    double kmPerDegreeLat)
 {
-    std::vector<std::vector<double>> matrix;
+    // Pre-project all teams once
+    std::vector<std::pair<double,double>> projected;
+    projected.reserve(teams.size());
+    for (const auto& t : teams)
+        projected.push_back(toProjectedCoords(t.gps_lat, t.gps_long, kmPerDegreeLat));
+
     int numTeams = teams.size();
+    std::vector<std::vector<double>> matrix;
+    matrix.reserve(numTeams);
 
     for (int i = 0; i < numTeams; i++) {
         std::vector<double> row;
+        row.reserve(numTeams);
         for (int j = 0; j < numTeams; j++) {
-            // Calculate distance using haversine approximation
-            double kmPerDegreeLong = kmPerDegreeLat * std::cos(
-                (teams[i].gps_lat + teams[j].gps_lat) * M_PI / 360.0
-            );
-            double kmLat = kmPerDegreeLat * (teams[i].gps_lat - teams[j].gps_lat);
-            double kmLong = kmPerDegreeLong * (teams[i].gps_long - teams[j].gps_long);
-            
-            double dist = std::sqrt(kmLat * kmLat + kmLong * kmLong);
-            
-            // Handle edge cases
-            if (dist < coordinatePrecision) {
-                dist = maxDistanceThreshold;
-            }
-            if (i == j) {
-                dist = 0.0;
-            }
-            
+            double dx = projected[i].first  - projected[j].first;
+            double dy = projected[i].second - projected[j].second;
+            double dist = std::sqrt(dx * dx + dy * dy);
+
+            if (i == j) dist = 0.0;
+
             row.push_back(dist);
         }
-        matrix.push_back(row);
+        matrix.push_back(std::move(row));
     }
 
     return matrix;

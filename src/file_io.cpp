@@ -57,7 +57,8 @@ void FileIO::writeLeaguesAssignment(
     const std::string& filename,
     const std::vector<TeamData>& teams,
     const std::vector<int>& teamSorting,
-    const std::vector<int>& leagueSizes)
+    const std::vector<int>& leagueSizes,
+    const std::string& leagueIdentifier)
 {
     std::ofstream myfile(filename);
     
@@ -68,7 +69,7 @@ void FileIO::writeLeaguesAssignment(
 
     int counter = 0;
     for (size_t i = 0; i < leagueSizes.size(); i++) {
-        myfile << std::setprecision(8) << "# League " << i + 1 << "\n";
+        myfile << std::setprecision(8) << "# " << leagueIdentifier << " " << i + 1 << "\n";
         for (int j = 0; j < leagueSizes[i]; j++) {
             const TeamData& team = teams[teamSorting[counter]];
             myfile << team.name << "\t" << team.address << "\t" 

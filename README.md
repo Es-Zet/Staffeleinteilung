@@ -1,269 +1,162 @@
-# League Assignment Optimizer (Staffeleinteilung)
+# League Assignment Tool
 
-Automatically assigns football teams to leagues to minimize travel distances.
-
-You may find an English version of the summary below the German description.
-
-## Disclaimer
-
-**This project is WORK IN PROGRESS!**
-
-The code and initial architecture were created using AI assistance (ChatGPT and Claude). While functional, it should be reviewed for production use. Moreover, this file was created by AI, too, and thus might contain inaccurate information.
+Two command-line tools for automatically dividing sports teams into geographically balanced leagues.
 
 ---
 
-## DEUTSCHE VERSION (German)
+## Files
 
-### Was macht das Tool?
-
-Gegeben eine Liste von Teams mit Standorten (GPS-Koordinaten) weist dieses Tool die Teams mehreren Ligen zu und minimiert dabei die Fahrtdistanzen:
-- **Fahrtdistanzen minimieren** - Teams in der gleichen Liga fahren kürzer
-- **Vereine trennen** - Mehrere Teams vom gleichen Verein werden in verschiedene Ligen eingeteilt
-- **Ausgewogene Ligen** - Ligen haben ähnliche Größe
-
-Der Optimizer verwendet iterative lokale Suche: Er beginnt mit einer zufälligen Zuteilung und vertauscht wiederholt Teams zwischen Ligen, wenn dies die Gesamtmetrik verbessert.
-
-### Optimierungsmetriken
-
-Wählen Sie das Optimierungsziel basierend auf Ihren Prioritäten:
-
-- **total_distance** (Standard): Minimiert die Summe aller Fahrtdistanzen. Beste Wahl, um die Gesamtbelastung zu reduzieren.
-- **max_team_distance**: Minimiert die längste Einzelstrecke zwischen zwei Teams. Verhindert extreme Gegner-Paarungen.
-- **max_travel_per_team**: Minimiert das Team mit der höchsten Gesamtfahrtdistanz. Stellt sicher, dass kein Team überproportional belastet wird.
-
-### Eingabeformat
-
-Erstellen Sie eine `Teamliste.csv` mit der folgenden Struktur:
-
-```csv
-Teamname, Adresse (optional), GPS Lat (Breite; N-S), GPS Long (Länge; O-W)
-1. FC Münklingen, Lehninger Weg; 71263 Weil der Stadt, 48.774344830497895, 8.818103820249467
-AC Italia Markgröningen, Schwieberdinger Str.; 71706 Markgröningen, 48.90074426433602, 9.082369035125339
-```
-
-Spalten:
-- **Teamname**: Name des Teams
-- **Adresse (optional)**: Physische Adresse (zur Erkennung von Teams des gleichen Vereins)
-- **GPS Lat (Breite; N-S)**: Breitengrad (Nord-Süd)
-- **GPS Long (Länge; O-W)**: Längengrad (Ost-West)
-
-Teams werden als vom gleichen Verein zugehörig erkannt, wenn:
-1. Sie die gleiche Adresse haben (oder sehr ähnliche GPS-Koordinaten)
-2. Ihre Namen einen Teilstring von mindestens 50% der längeren Namens-Länge teilen (z.B. "AC Italia II" und "AC Italia Markgröningen II" sind vom gleichen Verein)
-
-### Konfiguration
-
-Bearbeiten Sie die `config.json`:
-
-```json
-{
-  "optimization": {
-    "attempts": 10,              // Anzahl der Optimierungsdurchläufe
-    "metric": "total_distance"   // Welche Metrik optimiert werden soll
-  },
-  "league": {
-    "prefer_even_sizes": true,
-    "disallow_same_club_in_league": true,   // Verhindere gleiche Vereine in einer Liga
-    "same_club_penalty": 1000.0             // Strafe für Verletzung
-  },
-  "geodesy": {
-    "km_per_degree_latitude": 111.32,       // Umwandlungsfaktor für Lat/Lon
-    "coordinate_precision": 1.0e-8          // Schwellenwert für doppelte Koordinaten
-  },
-  "debug": {
-    "enabled": true,
-    "verbose": true
-  },
-  "metrics": {
-    "available": [
-      "total_distance",
-      "max_team_distance",
-      "max_travel_per_team"
-    ]
-  }
-}
-```
-
-**Wichtige Einstellungen:**
-- `attempts`: Mehr Versuche = bessere Optimierung, aber längere Laufzeit
-- `metric`: Wählen Sie, welches Optimierungsziel verwendet werden soll
-- `disallow_same_club_in_league`: Auf `false` setzen, um mehrere Teams eines Vereins in einer Liga zu erlauben
-- `same_club_penalty`: Höhere Strafe = stärkere Durchsetzung (muss größer als Distanzunterschiede sein)
-
-### Kompilierung
-
-**Anforderungen:**
-- CMake 3.12+
-- C++17-kompatibler Compiler (MSVC, GCC, Clang)
-
-**Schritte:**
-```bash
-mkdir build
-cd build
-cmake ..
-cmake --build . --config Release
-```
-
-Ausführbare Datei: `build/StaffelEinteilung.exe` (Windows) oder `build/StaffelEinteilung` (Linux/macOS)
-
-### Ausführung
-
-1. Bereiten Sie `Teamliste.csv` mit Ihren Teamdaten vor
-2. Passen Sie `config.json` ggf. an (Metrik-Wahl, Strafstärke, etc.)
-3. Starten Sie den Optimizer:
-   ```bash
-   ./StaffelEinteilung
-   ```
-4. Geben Sie auf Anfrage die maximale Ligengröße ein
-5. Ergebnisse werden in `Staffelaufteilung.txt` geschrieben
-
-### Ausgabeformat
-
-`Staffelaufteilung.txt` enthält die Ligenzuteilungen:
-
-```
-# Liga 1
-1. FC Münklingen    Lehninger Weg; 71263 Weil der Stadt    48.77, 8.82
-AC Italia Markgröningen    Schwieberdinger Str.; 71706 Markgröningen    48.90, 9.08
-
-# Liga 2
-...
-```
-
-### Wie es funktioniert
-
-1. **Distanzberechnung**: Verwendet Lat/Lon-Koordinaten mit Haversine-Approximation
-2. **Straf-System**: Teams vom gleichen Verein in der gleichen Liga erhalten eine hohe Strafe
-3. **Lokale Suche**: Vertauscht Teams iterativ zwischen Ligen und behält Vertauschungen, die die Metrik verbessern
-4. **Mehrere Versuche**: Führt Optimierung von verschiedenen zufälligen Startpunkten durch und behält das beste Ergebnis
-
-Die Strafe für Verein-Zuordnungen ist konfigurierbar - erhöhen Sie sie, wenn Teams weiterhin zusammengefasst werden, oder verringern Sie sie, um etwas Flexibilität zu erlauben.
+| File | Description |
+|------|-------------|
+| `StaffelEinteilung.exe` | Optimizes and writes a new league assignment |
+| `StaffelBewertung.exe` | Evaluates an existing assignment and generates an HTML map |
+| `Teamliste.csv` | Input: list of teams with addresses and GPS coordinates |
+| `config.json` | Settings for both tools |
+| `Staffeleinteilung.txt` | Output: league assignment (generated by StaffelEinteilung) |
+| `Staffeleinteilung.html` | Output: visual map of the assignment (generated by StaffelBewertung) |
 
 ---
 
-## ENGLISH VERSION
+## Quickstart
 
-### What This Does
+1. Fill in `Teamliste.csv` with your teams (see format below).
+2. Adjust `config.json` if needed (see below).
+3. Run `StaffelEinteilung.exe`:
+   - Select an optimization metric (or press Enter for the default).
+   - Enter the maximum league size.
+   - Review and optionally remove detected same-club pairings.
+   - Wait for the optimization to finish.
+4. Run `StaffelBewertung.exe` to generate `Staffeleinteilung.html` with a visual map.
 
-Given a list of teams with locations (GPS coordinates), this tool assigns them to multiple leagues while:
-- **Minimizing travel distances** - Teams in the same league travel less
-- **Preventing club duplicates** - Multiple teams from the same club are placed in different leagues
-- **Creating balanced leagues** - Leagues are roughly equal in size
+---
 
-The optimizer uses iterative local search: it starts with a random assignment and repeatedly swaps teams between leagues if it improves the overall metric.
+## Teamliste.csv Format
+
+One team per line, comma-separated:
+```
+Team name, Address (optional), GPS Latitude, GPS Longitude
+```
+
+Example:
+```
+FC Musterstadt, Musterstraße 1; 12345 Musterstadt, 48.774344830497895, 8.818103820249467
+FC Beispiel, , 48.90074426433602, 9.082369035125339
+```
+
+GPS coordinates (decimal degrees) are required for distance calculation. Free tools like [Google Maps](https://maps.google.com) or [maps.ie](https://www.maps.ie/coordinates.html) can look these up by address.
+
+---
+
+## config.json Settings
+
+| Key | Description |
+|-----|-------------|
+| `file_names` | Input/output file paths |
+| `optimization.attempts` | Number of random restarts (more = better result, slower) |
+| `optimization.metric` | Default metric (used if Enter is pressed at startup) |
+| `league.prefer_even_sizes` | Try to make all leagues the same size |
+| `league.disallow_same_club_in_league` | Keep teams from the same club in different leagues |
+| `metrics.available` | Which metrics appear in the selection list |
+| `customization.league_identifier` | Word used for "league" in output files (e.g. `Staffel`, `Liga`) |
 
 ### Optimization Metrics
 
-Choose the optimization goal based on your priorities:
+| Metric | Description |
+|--------|-------------|
+| `total_distance` | Minimizes total travel across all teams and games — good general choice |
+| `square_distance` | Minimizes the square of the travel distances across all teams and games (penalizes long individual trips more heavily) |
+| `max_team_distance` | Minimizes the worst-off team's total season travel |
+| `max_travel_per_team` | Minimizes the longest single matchday trip |
 
-- **total_distance** (default): Minimize the sum of all distances. Best for keeping total travel low across all teams.
-- **max_team_distance**: Minimize the longest single distance between any two teams. Prevents extreme matchups.
-- **max_travel_per_team**: Minimize the team that travels the most. Ensures no single team has an unfairly long schedule.
+The metrics `max_team_distance` and `max_travel_per_team` are somewhat ill-suited for the optimization as there is no further optimization after finding an optimal setup for the team with the worst travel calendar.
 
-### Input Format
+---
 
-Create `Teamliste.csv` with the following structure:
+## Notes
 
-```csv
-Teamname, Adresse (optional), GPS Lat (Breite; N-S), GPS Long (Länge; O-W)
-1. FC Münklingen, Lehninger Weg; 71263 Weil der Stadt, 48.774344830497895, 8.818103820249467
-AC Italia Markgröningen, Schwieberdinger Str.; 71706 Markgröningen, 48.90074426433602, 9.082369035125339
+- Same-club detection is based on matching address and name prefix. You can remove false positives interactively when running `StaffelEinteilung.exe`.
+- All distances are straight-line (as the crow flies).
+- Increase `optimization.attempts` for better results at the cost of longer runtime.
+
+---
+---
+
+# Staffeleinteilungs-Tool
+
+Zwei Kommandozeilenprogramme zur automatischen, geografisch ausgewogenen Einteilung von Mannschaften in Staffeln.
+
+---
+
+## Dateien
+
+| Datei | Beschreibung |
+|-------|--------------|
+| `StaffelEinteilung.exe` | Optimiert und schreibt eine neue Staffeleinteilung |
+| `StaffelBewertung.exe` | Bewertet eine bestehende Einteilung und erstellt eine HTML-Karte |
+| `Teamliste.csv` | Eingabe: Mannschaftsliste mit Adressen und GPS-Koordinaten |
+| `config.json` | Einstellungen für beide Programme |
+| `Staffeleinteilung.txt` | Ausgabe: Staffeleinteilung (erstellt von StaffelEinteilung) |
+| `Staffeleinteilung.html` | Ausgabe: Visuelle Karte der Einteilung (erstellt von StaffelBewertung) |
+
+---
+
+## Schnellstart
+
+1. `Teamliste.csv` mit den eigenen Mannschaften befüllen (Format siehe unten).
+2. `config.json` bei Bedarf anpassen (siehe unten).
+3. `StaffelEinteilung.exe` starten:
+   - Optimierungsmetrik auswählen (oder Enter für den Standard drücken).
+   - Maximale Staffelgröße eingeben.
+   - Erkannte vereinsinterne Paarungen prüfen und ggf. entfernen.
+   - Optimierung abwarten.
+4. `StaffelBewertung.exe` starten, um `Staffeleinteilung.html` mit einer visuellen Karte zu erzeugen.
+
+---
+
+## Format der Teamliste.csv
+
+Eine Mannschaft pro Zeile, kommagetrennt:
+```
+Teamname, Adresse (optional), GPS-Breitengrad, GPS-Längengrad
 ```
 
-Columns:
-- **Teamname**: Name of the team
-- **Adresse (optional)**: Physical address (used for detecting teams from same club)
-- **GPS Lat (Breite; N-S)**: Latitude (North-South)
-- **GPS Long (Länge; O-W)**: Longitude (East-West)
-
-Teams are considered to be from the same club if:
-1. They share the same address (or very similar GPS coordinates)
-2. Their names share a substring of at least 50% of the longer name (e.g., "AC Italia II" and "AC Italia Markgröningen II" are from same club)
-
-### Configuration
-
-Edit `config.json`:
-
-```json
-{
-  "optimization": {
-    "attempts": 10,              // Number of optimization attempts
-    "metric": "total_distance"   // Which metric to optimize
-  },
-  "league": {
-    "prefer_even_sizes": true,
-    "disallow_same_club_in_league": true,   // Prevent same club teams together
-    "same_club_penalty": 1000.0             // Penalty for violating this
-  },
-  "geodesy": {
-    "km_per_degree_latitude": 111.32,       // Conversion factor for lat/lon
-    "coordinate_precision": 1.0e-8          // Threshold for duplicate coords
-  },
-  "debug": {
-    "enabled": true,
-    "verbose": true
-  },
-  "metrics": {
-    "available": [
-      "total_distance",
-      "max_team_distance",
-      "max_travel_per_team"
-    ]
-  }
-}
+Beispiel:
+```
+FC Musterstadt, Musterstraße 1; 12345 Musterstadt, 48.774344830497895, 8.818103820249467
+FC Beispiel, , 48.90074426433602, 9.082369035125339
 ```
 
-**Key settings:**
-- `attempts`: More attempts = better optimization but slower runtime
-- `metric`: Change which optimization goal to use
-- `disallow_same_club_in_league`: Set to `false` to allow multiple teams from same club in one league
-- `same_club_penalty`: Higher penalty = stronger enforcement (must be large enough to outweigh distance differences)
+GPS-Koordinaten (Dezimalgrad) sind für die Entfernungsberechnung erforderlich. Sie können über [Google Maps](https://maps.google.com) oder ähnliche Dienste ermittelt werden.
 
-### Building
+---
 
-**Prerequisites:**
-- CMake 3.12+
-- C++17 compiler (MSVC, GCC, or Clang)
+## Einstellungen in config.json
 
-**Steps:**
-```bash
-mkdir build
-cd build
-cmake ..
-cmake --build . --config Release
-```
+| Schlüssel | Beschreibung |
+|-----------|--------------|
+| `file_names` | Pfade zu Ein- und Ausgabedateien |
+| `optimization.attempts` | Anzahl zufälliger Neustarts (mehr = besseres Ergebnis, langsamer) |
+| `optimization.metric` | Standardmetrik (wird bei Enter-Eingabe verwendet) |
+| `league.prefer_even_sizes` | Staffeln möglichst gleich groß halten |
+| `league.disallow_same_club_in_league` | Mannschaften desselben Vereins in verschiedene Staffeln einteilen |
+| `metrics.available` | Welche Metriken in der Auswahlliste erscheinen |
+| `customization.league_identifier` | Bezeichnung für „Staffel" in den Ausgabedateien (z. B. `Staffel`, `Liga`) |
 
-Executable: `build/StaffelEinteilung.exe` (Windows) or `build/StaffelEinteilung` (Linux/macOS)
+### Optimierungsmetriken
 
-### Running
+| Metrik | Beschreibung |
+|--------|--------------|
+| `total_distance` | Minimiert die Gesamtfahrtstrecke aller Teams – gute Allgemeinwahl |
+| `square_distance` | Minimiert die Quadratische Summe aller Fahrtwege aller Teams (gewichtet lange Wegstrecken stärker) |
+| `max_team_distance` | Minimiert die Gesamtsaisonfahrtstrecke des am stärksten belasteten Teams |
+| `max_travel_per_team` | Minimiert die längste Einzelfahrt an einem Spieltag |
 
-1. Prepare `Teamliste.csv` with your team data
-2. Adjust `config.json` if needed (metric choice, penalty strength, etc.)
-3. Run the optimizer:
-   ```bash
-   ./StaffelEinteilung
-   ```
-4. When prompted, enter maximum league size
-5. Results written to `Staffelaufteilung.txt`
+Die Metriken `max_team_distance` und `max_travel_per_team` eignen sich für die Optimierung nur bedingt, da nach Optimierung des am stärksten belasteten Teams keine weitere Optimierung vorgenommen wird.
 
-### Output Format
+---
 
-`Staffelaufteilung.txt` contains the league assignments:
+## Hinweise
 
-```
-# League 1
-1. FC Münklingen    Lehninger Weg; 71263 Weil der Stadt    48.77, 8.82
-AC Italia Markgröningen    Schwieberdinger Str.; 71706 Markgröningen    48.90, 9.08
-
-# League 2
-...
-```
-
-### How It Works
-
-1. **Distance calculation**: Uses lat/long coordinates with haversine approximation
-2. **Penalty system**: Same-club teams in same league incur a high penalty
-3. **Local search**: Iteratively swaps teams between leagues, keeping swaps that improve the metric
-4. **Multiple attempts**: Runs optimization from different random starting points, keeps the best result
-
-The penalty for same-club assignments is configurable - increase it if teams are still being placed together, or decrease it to allow some flexibility.
+- Die Erkennung vereinsinterner Paarungen basiert auf Adresse und Namensanfang. Fehlerkennungen können beim Start von `StaffelEinteilung.exe` interaktiv entfernt werden.
+- Alle Entfernungen sind Luftlinienentfernungen.
+- Mehr `optimization.attempts` verbessern das Ergebnis, erhöhen aber die Laufzeit.

@@ -6,18 +6,16 @@
     "results": "Staffeleinteilung.html"
   },
   "optimization": {
-    "attempts": 10,
+    "attempts": 1,
     "metric": "total_distance"
   },
   "league": {
     "prefer_even_sizes": true,
     "disallow_same_club_in_league": true,
-    "same_club_penalty": 1000.0
+    "same_club_penalty": 1e9
   },
   "geodesy": {
-    "km_per_degree_latitude": 111.32,
-    "max_distance_threshold": 1.0e10,
-    "coordinate_precision": 1.0e-8
+    "km_per_degree_latitude": 111.32
   },
   "debug": {
     "enabled": true,
@@ -26,11 +24,13 @@
   "metrics": {
     "available": [
       "total_distance",
+      "square_distance",
       "max_team_distance",
       "max_travel_per_team"
     ],
     "description": {
       "total_distance": "Summe aller Reisestrecken aller Teams über die gesamte Saison",
+      "square_distance": "Summe der Quadrate aller Reisestrecken aller Teams über die gesamte Saison (optimiert größere Distanzen stärker als kleinere)",
       "max_team_distance": "Maximale Reisestrecke eines einzelnen Teams über die gesamte Saison",
       "max_travel_per_team": "Maximiale Reisestrecke eines einzelnen Teams an einem einzelnen Spieltag"
     }

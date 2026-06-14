@@ -26,7 +26,7 @@ struct ParsedAssignment {
     bool hasGpsCoordinates = false;
 };
 
-ParsedAssignment parseLeagueAssignment(const string& filename)
+ParsedAssignment parseLeagueAssignment(const string& filename, const Config& config)
 {
     ParsedAssignment result;
     result.teams.clear();
@@ -41,6 +41,7 @@ ParsedAssignment parseLeagueAssignment(const string& filename)
 
     string line;
     int currentLeagueSize = 0;
+    std::string league_identifier = config.getLeagueIdentifier();
     
     while (getline(file, line)) {
         // Skip empty lines
@@ -49,7 +50,7 @@ ParsedAssignment parseLeagueAssignment(const string& filename)
         }
 
         // Check if this is a league header
-        if (line.find("# Staffel") != string::npos) {
+        if (line.find("# " + league_identifier) != string::npos) {
             // Save previous league size if any
             if (currentLeagueSize > 0) {
                 result.leagueSizes.push_back(currentLeagueSize);
@@ -230,7 +231,7 @@ int main(int argc, char* argv[])
     }
     
     cout << "Reading league assignment from " << assignmentFile << "..." << endl;
-    ParsedAssignment parsedAssignment = parseLeagueAssignment(assignmentFile);
+    ParsedAssignment parsedAssignment = parseLeagueAssignment(assignmentFile, config);
 
     if (parsedAssignment.teams.empty()) {
         cerr << "Error: No teams found in " << assignmentFile << endl;
@@ -303,9 +304,7 @@ int main(int argc, char* argv[])
     cout << "Calculating distance matrix..." << endl;
     vector<vector<double>> distanceMatrix = DistanceCalculator::createDistanceMatrix(
         teams,
-        config.getKmPerDegreeLat(),
-        config.getCoordinatePrecision(),
-        config.getMaxDistanceThreshold()
+        config.getKmPerDegreeLat()
     );
     cout << "Distance matrix calculated." << endl << endl;
 

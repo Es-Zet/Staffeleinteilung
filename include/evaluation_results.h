@@ -24,6 +24,7 @@ public:
     {
         int leagueNumber;
         std::vector<std::string> teamNames;
+        std::vector<std::string> teamAddresses;
         std::vector<int> teamIndices;  // Original indices in teams vector
         double totalLeagueDistance = 0.0;
         double maxTravel = 0.0;
@@ -50,6 +51,7 @@ public:
     struct TeamMetrics
     {
         std::string teamName;
+        std::string teamAddress;
         int teamIndex;
         int assignedLeague;
         double totalTravel = 0.0;
@@ -76,6 +78,7 @@ public:
     const std::vector<MetricResult>& getMetrics() const { return metrics; }
     const std::vector<TeamMetrics>& getTeamMetrics() const { return teamMetrics; }
     int getTeamCount() const { return teams.size(); }
+    TeamData getTeam(int index) const { return teams.at(index); }
     int getLeagueCount() const { return leagues.size(); }
     double getTotalDistance() const;
 

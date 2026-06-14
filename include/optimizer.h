@@ -39,6 +39,12 @@ public:
     // Output metric details for verbose mode
     void outputMetricDetails(const std::vector<std::vector<double>>& travels, double result) const;
 
+    // Same-club penalty access
+    const std::vector<std::vector<double>>& getPenaltyMatrix() const { return penaltyMatrix; }
+    void clearPenalty(int i, int j) {
+        penaltyMatrix[i][j] = 0.0;
+        penaltyMatrix[j][i] = 0.0;
+    }
 protected:
     int numTeams;
     bool debug;
@@ -58,6 +64,12 @@ protected:
         const std::vector<int>& sorting,
         const std::vector<int>& leagues) const;
 
+    // reshuffle team sizes (i.e. move teams between leagues) to escape local minima
+    bool reshuffleLeagues(
+        const std::vector<std::vector<double>>& distances, 
+        std::vector<int>& teamSorting, 
+        const std::vector<int>& leagues) const;
+
     // Abstract method for derived classes to implement metric-specific calculation
     virtual double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const = 0;
 
@@ -69,16 +81,24 @@ protected:
 class TotalDistanceOptimizer : public Optimizer {
 public:
     TotalDistanceOptimizer(int numTeams, const std::vector<TeamData>& teams,
-                          bool debug, bool disallowSameClub, double sameClubPenalty);
+                           bool debug, bool disallowSameClub, double sameClubPenalty);
 protected:
     double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const override;
     std::string getMetricName() const override { return "total_distance"; }
 };
 
+class SquareDistanceOptimizer : public Optimizer {
+public:    SquareDistanceOptimizer(int numTeams, const std::vector<TeamData>& teams,
+                                   bool debug, bool disallowSameClub, double sameClubPenalty);
+protected:
+    double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const override;
+    std::string getMetricName() const override { return "square_distance"; }
+};
+
 class MaxTeamDistanceOptimizer : public Optimizer {
 public:
     MaxTeamDistanceOptimizer(int numTeams, const std::vector<TeamData>& teams,
-                            bool debug, bool disallowSameClub, double sameClubPenalty);
+                             bool debug, bool disallowSameClub, double sameClubPenalty);
 protected:
     double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const override;
     std::string getMetricName() const override { return "max_team_distance"; }
@@ -87,7 +107,7 @@ protected:
 class MaxTravelPerTeamOptimizer : public Optimizer {
 public:
     MaxTravelPerTeamOptimizer(int numTeams, const std::vector<TeamData>& teams,
-                             bool debug, bool disallowSameClub, double sameClubPenalty);
+                              bool debug, bool disallowSameClub, double sameClubPenalty);
 protected:
     double calculateMetricImpl(const std::vector<std::vector<double>>& travels) const override;
     std::string getMetricName() const override { return "max_travel_per_team"; }

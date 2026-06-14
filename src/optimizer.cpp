@@ -1,5 +1,9 @@
 #include "optimizer.h"
 #include <cmath>
+#include <set>
+#include <functional>
+#include <algorithm>
+#include <random>
 
 // Factory method to create appropriate optimizer based on metric name
 std::unique_ptr<Optimizer> Optimizer::create(
@@ -12,6 +16,8 @@ std::unique_ptr<Optimizer> Optimizer::create(
 {
     if (metricName == "total_distance") {
         return std::make_unique<TotalDistanceOptimizer>(numTeams, teams, debug, disallowSameClub, sameClubPenalty);
+    } else if (metricName == "square_distance") {
+        return std::make_unique<SquareDistanceOptimizer>(numTeams, teams, debug, disallowSameClub, sameClubPenalty);
     } else if (metricName == "max_team_distance") {
         return std::make_unique<MaxTeamDistanceOptimizer>(numTeams, teams, debug, disallowSameClub, sameClubPenalty);
     } else if (metricName == "max_travel_per_team") {
@@ -21,7 +27,7 @@ std::unique_ptr<Optimizer> Optimizer::create(
     }
 }
 
-// Base class constructor - builds penalty matrix once
+// Base class constructor
 Optimizer::Optimizer(int numTeams, bool debug, const std::vector<TeamData>& teams,
                      bool disallowSameClub, double sameClubPenalty)
     : numTeams(numTeams), debug(debug)
@@ -132,6 +138,83 @@ double Optimizer::calculateMetric(
     return result;
 }
 
+bool Optimizer::reshuffleLeagues(
+    const std::vector<std::vector<double>>& distances,
+    std::vector<int>&                       teamSorting,
+    const std::vector<int>&                 leagues) const
+{
+    auto computeStarts = [](const std::vector<int>& lg) {
+        std::vector<int> starts(lg.size());
+        starts[0] = 0;
+        for (size_t i = 1; i < lg.size(); i++)
+            starts[i] = starts[i-1] + lg[i-1];
+        return starts;
+    };
+
+    auto combinations = [](int size, int depth) -> std::vector<std::vector<int>> {
+        std::vector<std::vector<int>> result;
+        std::vector<int> cur;
+        std::function<void(int)> gen = [&](int start) {
+            if (static_cast<int>(cur.size()) == depth) { result.push_back(cur); return; }
+            for (int i = start; i <= size - (depth - static_cast<int>(cur.size())); i++) {
+                cur.push_back(i);
+                gen(i + 1);
+                cur.pop_back();
+            }
+        };
+        gen(0);
+        return result;
+    };
+
+    const auto   starts        = computeStarts(leagues);
+    const double currentMetric = calculateMetric(distances, teamSorting, leagues);
+
+    // Only consider pairs where league sizes differ
+    std::vector<std::tuple<int,int,int>> possibleSwaps;
+    for (size_t i = 0; i < leagues.size(); i++) {
+        for (size_t j = i + 1; j < leagues.size(); j++) {
+            if (leagues[i] > leagues[j])
+                possibleSwaps.emplace_back(i, j, leagues[i] - leagues[j]);
+            else if (leagues[j] > leagues[i])
+                possibleSwaps.emplace_back(j, i, leagues[j] - leagues[i]);
+        }
+    }
+
+    // randomize possible swaps to avoid bias
+    std::shuffle(possibleSwaps.begin(), possibleSwaps.end(), std::default_random_engine());
+
+    for (const auto& [from, to, sizeDiff] : possibleSwaps) {
+        for (const auto& fromCombo : combinations(leagues[from], sizeDiff)) {
+            // Collect moved and staying teams
+            std::set<int>    movedIdx(fromCombo.begin(), fromCombo.end());
+            std::vector<int> movedTeams, stayFrom;
+            for (int k = 0; k < leagues[from]; k++) {
+                if (movedIdx.count(k)) movedTeams.push_back(teamSorting[starts[from] + k]);
+                else                   stayFrom  .push_back(teamSorting[starts[from] + k]);
+            }
+            std::vector<int> toTeams;
+            for (int k = 0; k < leagues[to]; k++)
+                toTeams.push_back(teamSorting[starts[to] + k]);
+
+            // Build new sorting with leagues `from` and `to` relabeled:
+            // `from` slot gets toTeams + movedTeams (= leagues[from] teams)
+            // `to`   slot gets stayFrom             (= leagues[to]   teams)
+            std::vector<int> newSorting = teamSorting;
+            int pos = starts[from];
+            for (int t : toTeams)    newSorting[pos++] = t;
+            for (int t : movedTeams) newSorting[pos++] = t;
+            pos = starts[to];
+            for (int t : stayFrom)   newSorting[pos++] = t;
+
+            if (calculateMetric(distances, newSorting, leagues) < currentMetric) {
+                teamSorting = newSorting;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 // Optimize team sorting using local search with pairwise swaps
 std::vector<int> Optimizer::optimizeSorting(
     const std::vector<std::vector<double>>& distances,
@@ -162,6 +245,16 @@ std::vector<int> Optimizer::optimizeSorting(
                 } else {
                     teamSorting = betterSorting;
                 }
+            }
+        }
+        // found local minimum, try reshuffling team sizes to escape
+        if (!betterFound && reshuffleLeagues(distances, betterSorting, leagues)) {
+            betterValue = calculateMetric(distances, betterSorting, leagues);
+            teamSorting = betterSorting;  // keep swap loop in sync
+            betterFound = true;
+            if (debug) {
+                std::cout << "Reshuffling yielded better sorting (metric: " 
+                          << std::fixed << std::setprecision(6) << betterValue << ")" << std::endl;
             }
         }
     }
@@ -233,6 +326,22 @@ double TotalDistanceOptimizer::calculateMetricImpl(const std::vector<std::vector
     for (const auto& teamTravel : travels) {
         for (double distance : teamTravel) {
             total += distance;
+        }
+    }
+    return total;
+}
+
+// SquareDistanceOptimizer
+SquareDistanceOptimizer::SquareDistanceOptimizer(int numTeams, const std::vector<TeamData>& teams,
+                                                 bool debug, bool disallowSameClub, double sameClubPenalty)
+    : Optimizer(numTeams, debug, teams, disallowSameClub, sameClubPenalty) {}
+
+double SquareDistanceOptimizer::calculateMetricImpl(const std::vector<std::vector<double>>& travels) const
+{
+    double total = 0.0;
+    for (const auto& teamTravel : travels) {
+        for (double distance : teamTravel) {
+            total += distance * distance;
         }
     }
     return total;

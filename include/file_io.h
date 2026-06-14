@@ -21,7 +21,8 @@ public:
         const std::string& filename,
         const std::vector<TeamData>& teams,
         const std::vector<int>& teamSorting,
-        const std::vector<int>& leagueSizes);
+        const std::vector<int>& leagueSizes,
+        const std::string& leagueIdentifier);
 };
 
 #endif // FILE_IO_H

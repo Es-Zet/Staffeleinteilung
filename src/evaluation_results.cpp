@@ -71,6 +71,7 @@ void EvaluationResults::buildLeagueData()
     for (size_t leagueIdx = 0; leagueIdx < leagues.size() && leagueIdx < leagueSizes.size(); leagueIdx++) {
         LeagueData& league = leagues[leagueIdx];
         league.teamNames.clear();
+        league.teamAddresses.clear();
         league.teamIndices.clear();
         league.totalLeagueDistance = 0.0;
         league.maxTravel = 0.0;
@@ -79,12 +80,12 @@ void EvaluationResults::buildLeagueData()
         
         // Use the actual league size from the assignment
         size_t leagueSize = leagueSizes[leagueIdx];
-        
         // Add team info for this league
         for (size_t i = 0; i < leagueSize && sortingIndex < sorting.size(); i++) {
             int teamIdx = sorting[sortingIndex];
             if (static_cast<size_t>(teamIdx) < teams.size()) {
                 league.teamNames.push_back(teams[teamIdx].name);
+                league.teamAddresses.push_back(teams[teamIdx].address);
                 league.teamIndices.push_back(teamIdx);
             }
             sortingIndex++;
